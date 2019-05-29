@@ -3,7 +3,7 @@
 ```
 newClient := func() (*grpc.ClientConn, error) {
     opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
-    return grpc.Dial("...", opts...)
+    return grpc.Dial("your connection address", opts...)
 }
 pool := NewGrpcPool(newClient, 10, time.Second*30)
 con, err := pool.GetConn()
