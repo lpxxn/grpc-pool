@@ -8,26 +8,35 @@ import (
 )
 
 type grpcPool struct {
-	_             struct{}
 	size          int
 	clientConnTtl int64
 	newGrpcClient NewGrpcClient
 	sync.Mutex
 	conns []*clientConn
+	_     struct{}
 }
 
 type clientConn struct {
-	_ struct{}
 	*grpc.ClientConn
 	pool        *grpcPool
 	createdTime int64
+	_           struct{}
 }
 
 type NewGrpcClient func() (*grpc.ClientConn, error)
 
 func NewGrpcPool(newConn NewGrpcClient, size int, clientConnTtl time.Duration) *grpcPool {
+	if newConn == nil {
+		panic("NewGrpcClient func is nil")
+	}
+	if size < 1 {
+		size = 1
+	}
+	if clientConnTtl <= 0 {
+		clientConnTtl = time.Second * 30
+	}
 	return &grpcPool{
-		_:             struct{}{},
+		newGrpcClient: newConn,
 		size:          size,
 		clientConnTtl: int64(clientConnTtl.Seconds()),
 		conns:         make([]*clientConn, 0),
@@ -56,14 +65,13 @@ func (p *grpcPool) GetConn() (*clientConn, error) {
 		return nil, err
 	}
 	return &clientConn{
-		_:           struct{}{},
 		ClientConn:  conn,
 		pool:        p,
 		createdTime: time.Now().Unix(),
 	}, nil
 }
 
-func (p *grpcPool) ClearAllConn() error {
+func (p *grpcPool) CloseAllConn() error {
 	p.Lock()
 	defer p.Unlock()
 	for _, v := range p.conns {
@@ -71,6 +79,10 @@ func (p *grpcPool) ClearAllConn() error {
 	}
 	p.conns = p.conns[:0]
 	return nil
+}
+
+func (p *grpcPool) Len() int {
+	return len(p.conns)
 }
 
 func (c *clientConn) Close() error {
