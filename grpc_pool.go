@@ -51,6 +51,7 @@ func (p *grpcPool) GetConn() (*clientConn, error) {
 	for len(conns) > 0 {
 		conn := conns[len(conns)-1]
 		conns = conns[0 : len(conns)-1]
+		p.conns = conns
 		if (tn - conn.createdTime) > p.clientConnTtl {
 			conn.ClientConn.Close()
 			continue

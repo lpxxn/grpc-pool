@@ -68,7 +68,7 @@ func TestNewGrpcPool2(t *testing.T) {
 		opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
 		return grpc.Dial(te.srvInfo.Addr, opts...)
 	}
-	pool := NewGrpcPool(newClient, 5, time.Second*1)
+	pool := NewGrpcPool(newClient, 5, time.Second*30)
 	getConn := func() {
 		con, err := pool.GetConn()
 		if err != nil {
@@ -83,7 +83,7 @@ func TestNewGrpcPool2(t *testing.T) {
 			}
 		})
 	}
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 20; i++ {
 		fmt.Printf("index: %d", i)
 		getConn()
 	}
@@ -93,6 +93,8 @@ func TestNewGrpcPool2(t *testing.T) {
 	getConn()
 	getConn()
 	getConn()
+	t.Logf("current len of pool: %d\n", pool.Len())
+	time.Sleep(time.Second * 2)
 	t.Logf("current len of pool: %d\n", pool.Len())
 	pool.CloseAllConn()
 }
