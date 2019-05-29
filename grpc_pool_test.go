@@ -35,7 +35,7 @@ func TestNewGrpcPool(t *testing.T) {
 		opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
 		return grpc.Dial(te.srvInfo.Addr, opts...)
 	}
-	pool := NewGrpcPool(newClient, 10, time.Second*30)
+	pool := NewGrpcPool(newClient, 10, time.Second*1)
 	con, err := pool.GetConn()
 	if err != nil {
 		t.Fatal(err)
@@ -43,12 +43,23 @@ func TestNewGrpcPool(t *testing.T) {
 	if con.GetState() != connectivity.Ready {
 		t.Fatal("client not ready")
 	}
-	if err := con.Close(); err != nil {
+	if err := con.Release(); err != nil {
 		t.Fatal(err)
 	}
 	if pool.Len() < 1 {
 		t.Fatal("pool len is not right")
 	}
+	time.Sleep(time.Second)
+	con, err = pool.GetConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if con.GetState() != connectivity.Ready {
+		t.Fatal("client not ready")
+	}
+	con.Release()
+	pool.CloseAllConn()
+
 }
 
 func (te *test) startServer() error {

@@ -94,3 +94,7 @@ func (c *clientConn) Close() error {
 	c.pool.Unlock()
 	return nil
 }
+
+func (c *clientConn) Release() error {
+	return c.Close()
+}

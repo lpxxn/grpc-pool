@@ -13,5 +13,5 @@ if err != nil {
 if con.GetState() != connectivity.Ready {
     panic("client not ready")
 }
-con.Close()
+con.Release()
 ```
