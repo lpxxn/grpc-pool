@@ -14,4 +14,6 @@ if con.GetState() != connectivity.Ready {
     panic("client not ready")
 }
 con.Release()
+
+pool.CloseAllConn()
 ```
