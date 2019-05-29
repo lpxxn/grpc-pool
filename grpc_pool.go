@@ -88,6 +88,7 @@ func (p *grpcPool) Len() int {
 func (c *clientConn) Close() error {
 	c.pool.Lock()
 	if len(c.pool.conns) >= c.pool.size {
+		c.pool.Unlock()
 		return c.ClientConn.Close()
 	}
 	c.pool.conns = append(c.pool.conns, c)
