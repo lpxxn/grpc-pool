@@ -1,2 +1,1 @@
-# gorm-pool
-gorm connect pool
+## sample grpc client connection pool
