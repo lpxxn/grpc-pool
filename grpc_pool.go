@@ -54,6 +54,10 @@ func (p *grpcPool) GetConn() (*clientConn, error) {
 		p.conns = conns
 		if (tn - conn.createdTime) > p.clientConnTtl {
 			conn.ClientConn.Close()
+			conn.ClientConn = nil
+			continue
+		}
+		if conn.ClientConn == nil {
 			continue
 		}
 		p.Unlock()
@@ -77,6 +81,7 @@ func (p *grpcPool) CloseAllConn() error {
 	defer p.Unlock()
 	for _, v := range p.conns {
 		v.ClientConn.Close()
+		v.ClientConn = nil
 	}
 	p.conns = p.conns[:0]
 	return nil
@@ -88,9 +93,14 @@ func (p *grpcPool) Len() int {
 
 func (c *clientConn) Close() error {
 	c.pool.Lock()
+	if c.ClientConn == nil {
+		return nil
+	}
 	if len(c.pool.conns) >= c.pool.size {
 		c.pool.Unlock()
-		return c.ClientConn.Close()
+		err := c.ClientConn.Close()
+		c.ClientConn = nil
+		return err
 	}
 	c.pool.conns = append(c.pool.conns, c)
 	c.pool.Unlock()
