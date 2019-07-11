@@ -23,11 +23,12 @@ type clientConn struct {
 	_           struct{}
 }
 
+type GrpcPool = *grpcPool
 type ClientConn = *clientConn
 
 type NewGrpcClient func() (*grpc.ClientConn, error)
 
-func NewGrpcPool(newConn NewGrpcClient, size int, clientConnTtl time.Duration) *grpcPool {
+func NewGrpcPool(newConn NewGrpcClient, size int, clientConnTtl time.Duration) GrpcPool {
 	if newConn == nil {
 		panic("NewGrpcClient func is nil")
 	}
