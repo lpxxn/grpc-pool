@@ -23,6 +23,8 @@ type clientConn struct {
 	_           struct{}
 }
 
+type ClientConn = *clientConn
+
 type NewGrpcClient func() (*grpc.ClientConn, error)
 
 func NewGrpcPool(newConn NewGrpcClient, size int, clientConnTtl time.Duration) *grpcPool {
@@ -43,7 +45,7 @@ func NewGrpcPool(newConn NewGrpcClient, size int, clientConnTtl time.Duration) *
 	}
 }
 
-func (p *grpcPool) GetConn() (*clientConn, error) {
+func (p *grpcPool) GetConn() (ClientConn, error) {
 	p.Lock()
 	conns := p.conns
 	tn := time.Now().Unix()
