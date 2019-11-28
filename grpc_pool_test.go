@@ -1,7 +1,6 @@
 package grpc_pool
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"testing"
@@ -63,12 +62,44 @@ func TestNewGrpcPool(t *testing.T) {
 
 }
 
+func Test_NewGrpcPoolInfinity(t *testing.T) {
+	newClient := func() (*grpc.ClientConn, error) {
+		opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
+		return grpc.Dial(te.srvInfo.Addr, opts...)
+	}
+	pool := NewGrpcPool(newClient, 10, -1)
+	con, err := pool.GetConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if con.GetState() != connectivity.Ready {
+		t.Fatal("client not ready")
+	}
+	if err := con.Release(); err != nil {
+		t.Fatal(err)
+	}
+	if pool.Len() < 1 {
+		t.Fatal("pool len is not right")
+	}
+	time.Sleep(time.Second)
+	con, err = pool.GetConn()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if con.GetState() != connectivity.Ready {
+		t.Fatal("client not ready")
+	}
+	con.Release()
+	pool.CloseAllConn()
+
+}
+
 func TestNewGrpcPool2(t *testing.T) {
 	newClient := func() (*grpc.ClientConn, error) {
 		opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
 		return grpc.Dial(te.srvInfo.Addr, opts...)
 	}
-	pool := NewGrpcPool(newClient, 5, time.Second*30)
+	pool := NewGrpcPool(newClient, 5, 1)
 	getConn := func() {
 		con, err := pool.GetConn()
 		if err != nil {
@@ -77,14 +108,15 @@ func TestNewGrpcPool2(t *testing.T) {
 		if con.GetState() != connectivity.Ready {
 			t.Fatal("client not ready")
 		}
-		time.AfterFunc(time.Second*1, func() {
+		time.AfterFunc(time.Second/100, func() {
 			if err := con.Release(); err != nil {
 				t.Fatal(err)
 			}
 		})
 	}
 	for i := 0; i < 20; i++ {
-		fmt.Printf("index: %d", i)
+		t.Logf("index: %d", i)
+		t.Logf("current len of pool: %d\n", pool.Len())
 		getConn()
 	}
 	t.Logf("current len of pool: %d\n", pool.Len())

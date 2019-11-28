@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 )
 
 type grpcPool struct {
@@ -35,7 +36,7 @@ func NewGrpcPool(newConn NewGrpcClient, size int, clientConnTtl time.Duration) G
 	if size < 1 {
 		size = 1
 	}
-	if clientConnTtl <= 0 {
+	if clientConnTtl == 0 {
 		clientConnTtl = time.Second * 30
 	}
 	return &grpcPool{
@@ -55,12 +56,17 @@ func (p *grpcPool) GetConn() (ClientConn, error) {
 		conn := conns[len(conns)-1]
 		conns = conns[0 : len(conns)-1]
 		p.conns = conns
-		if (tn - conn.createdTime) > p.clientConnTtl {
+		if p.clientConnTtl > 0 && (tn-conn.createdTime) > p.clientConnTtl {
 			conn.ClientConn.Close()
 			conn.ClientConn = nil
 			continue
 		}
 		if conn.ClientConn == nil {
+			continue
+		}
+		if conn.ClientConn.GetState() == connectivity.Shutdown {
+			conn.ClientConn.Close()
+			conn.ClientConn = nil
 			continue
 		}
 		p.Unlock()
