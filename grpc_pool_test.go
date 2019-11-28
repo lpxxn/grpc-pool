@@ -3,6 +3,7 @@ package grpc_pool
 import (
 	"net"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -147,4 +148,41 @@ func (te *test) startServer() error {
 
 func (te *test) stop() {
 	te.srvInfo.srv.Stop()
+}
+
+func TestNewGrpcPool3(t *testing.T) {
+	createdTotal := 0
+	newClient := func() (*grpc.ClientConn, error) {
+		opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
+		createdTotal++
+		return grpc.Dial(te.srvInfo.Addr, opts...)
+	}
+	pool := NewGrpcPool(newClient, 5, -1)
+	wg := sync.WaitGroup{}
+	total := 100
+	wg.Add(total)
+	getConn := func() {
+		t.Logf("current len of pool: %d\n", pool.Len())
+		con, err := pool.GetConn()
+		if err != nil {
+			t.Fatal(err)
+		}
+		con.Release()
+		t.Logf("release len of pool: %d\n", pool.Len())
+	}
+
+	for i := 0; i < total; i++ {
+		go func() {
+			getConn()
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	t.Log("created total: ", createdTotal)
+	for i := 0; i < 10; i++ {
+		getConn()
+
+	}
+	t.Logf("current len of pool: %d\n", pool.Len())
+	pool.CloseAllConn()
 }
