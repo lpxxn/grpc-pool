@@ -105,7 +105,7 @@ func (c *clientConn) Close() error {
 	if c.ClientConn == nil {
 		return nil
 	}
-	if c.ClientConn.GetState() == connectivity.Shutdown || len(c.pool.conns) >= c.pool.size {
+	if len(c.pool.conns) >= c.pool.size {
 		c.pool.Unlock()
 		err := c.ClientConn.Close()
 		c.ClientConn = nil
